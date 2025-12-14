@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>R Share</title>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+  :root {
+    --bg-dark: #020617;
+    --bg-gradient: radial-gradient(circle at top right, #1e293b 0%, #020617 100%);
+    --glass: rgba(15, 23, 42, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --primary: #3b82f6;
+    --primary-dim: rgba(59, 130, 246, 0.15);
+    --accent: #06b6d4;
+    --success: #10b981;
+    --danger: #ef4444;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --radius-xl: 24px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --header-height: 60px;
+    --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body, html {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    overflow: hidden;
+  }
+
+  /* --- UTILITIES --- */
+  .hidden { display: none !important; }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  /* --- LOGIN SCREEN --- */
+  #loginScreen {
+    position: fixed; inset: 0;
+    background: var(--bg-dark);
+    background-image: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #020617 60%);
+    z-index: 2000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    width: 100%; max-width: 360px;
+    text-align: center;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .logo-big {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: white; margin: 0 auto 24px auto;
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: 0.3s;
+  }
+  .login-input:focus { outline: none; border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+
+  .btn-primary {
+    width: 100%; padding: 18px;
+    background: var(--primary);
+    color: white; border: none;
+    border-radius: var(--radius-lg);
+    font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: 0.2s;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .credit-link {
+    display: block;
+    margin-top: 24px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: 0.2s;
+  }
+  .credit-link:hover { opacity: 1; color: var(--primary); }
+
+  /* --- APP LAYOUT --- */
+  .app-layout {
+    display: flex;
+    height: 100dvh; /* Dynamic Viewport Height */
+    width: 100vw;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+  }
+  .app-layout.active { opacity: 1; pointer-events: all; }
+
+  /* --- SIDEBAR / BOTTOM SHEET --- */
+  .sidebar-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    z-index: 900; opacity: 0; pointer-events: none; transition: 0.3s;
+  }
+  .sidebar-backdrop.active { opacity: 1; pointer-events: all; }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0; left: 0; width: 100%;
+    height: 75dvh;
+    background: #0f172a;
+    border-top: 1px solid var(--glass-border);
+    border-radius: 24px 24px 0 0;
+    z-index: 1000;
+    transform: translateY(105%);
+    transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex; flex-direction: column;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  }
+  .sidebar.open { transform: translateY(0); }
+
+  /* Desktop Override */
+  @media (min-width: 900px) {
+    .sidebar {
+      position: relative; transform: none;
+      width: 320px; height: 100%;
+      border-top: none; border-radius: 0; border-right: 1px solid var(--glass-border);
+      background: rgba(15, 23, 42, 0.3);
+    }
+    .sidebar-backdrop { display: none !important; }
+    .sheet-handle { display: none; }
+  }
+
+  .sheet-handle {
+    width: 40px; height: 5px; background: rgba(255,255,255,0.2);
+    border-radius: 3px; margin: 12px auto;
+  }
+
+  .sidebar-header {
+    padding: 10px 20px 20px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  
+  .user-list {
+    flex: 1; overflow-y: auto; padding: 0 16px 20px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .user-card {
+    display: flex; align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    cursor: pointer; transition: 0.2s;
+  }
+  .user-card:active, .user-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+  
+  .avatar {
+    width: 44px; height: 44px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: white; margin-right: 14px;
+    position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+  .online-dot {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--success); border: 2px solid #0f172a;
+  }
+
+  .my-profile {
+    padding: 20px;
+    background: rgba(0,0,0,0.2);
+    border-top: 1px solid var(--glass-border);
+    display: flex; align-items: center;
+    padding-bottom: max(20px, var(--safe-area-bottom));
+  }
+
+  /* --- MAIN CONTENT --- */
+  .main-content {
+    flex: 1; display: flex; flex-direction: column; position: relative;
+    background: radial-gradient(circle at 50% 50%, #172033 0%, #020617 100%);
+  }
+
+  .app-header {
+    height: var(--header-height);
+    padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+    z-index: 10;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; }
+
+  /* FAB for Mobile Users */
+  .fab-users {
+    position: absolute; bottom: 100px; right: 20px;
+    width: 56px; height: 56px;
+    background: var(--primary); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    z-index: 50; cursor: pointer; transition: 0.2s;
+    font-size: 1.2rem;
+  }
+  .fab-users:active { transform: scale(0.9); }
+  .fab-badge {
+    position: absolute; top: -2px; right: -2px;
+    background: var(--danger); font-size: 0.7rem;
+    padding: 2px 6px; border-radius: 10px; border: 2px solid #0f172a;
+  }
+  @media (min-width: 900px) { .fab-users { display: none; } }
+
+  .chat-area {
+    flex: 1; padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* File Cards */
+  .file-bubble {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 100%;
+    animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .file-bubble.sent { align-self: flex-end; border-bottom-right-radius: 4px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); }
+  .file-bubble.received { align-self: flex-start; border-bottom-left-radius: 4px; }
+
+  .bubble-header { display: flex; align-items: center; gap: 12px; }
+  .file-icon-box {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .file-details { overflow: hidden; }
+  .file-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+  .progress-track { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .progress-fill { height: 100%; width: 0%; background: var(--success); transition: width 0.1s linear; }
+
+  /* Footer */
+  .app-footer {
+    padding: 16px;
+    padding-bottom: max(16px, var(--safe-area-bottom));
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border);
+    z-index: 20;
+    position: relative;
+  }
+  
+  .file-btn {
+    width: 100%;
+    height: 54px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: 0.2s; cursor: not-allowed;
+  }
+  .file-btn.active {
+    background: var(--primary);
+    border: none; color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  }
+  .file-btn.active:active { transform: scale(0.98); }
+
+  /* HIDE DEFAULT FILE INPUT COMPLETELY */
+  input[type="file"] {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 0; height: 0;
+  }
+
+  /* --- MODAL --- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
+
+  .modal-box {
+    background: #1e293b;
+    width: 100%; max-width: 340px;
+    border-radius: 24px;
+    padding: 30px 24px;
+    text-align: center;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    transform: scale(0.95); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes popIn { to { transform: scale(1); } }
+
+  .modal-avatar-large {
+    width: 80px; height: 80px; border-radius: 24px; margin: 0 auto 20px auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  }
+
+  .btn-group { display: flex; gap: 12px; margin-top: 24px; }
+  .btn-action { flex: 1; padding: 14px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; }
+  .btn-accept { background: var(--success); color: white; }
+  .btn-reject { background: rgba(255,255,255,0.05); color: var(--text-main); }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+    background: #1e293b; padding: 12px 24px; border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    border: 1px solid var(--glass-border);
+    display: flex; align-items: center; gap: 10px;
+    z-index: 4000; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 0.9rem; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+</style>
+
+    <!-- PWA Injected by PWA Forge -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <meta name="theme-color" content="#000000">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js');
+        });
+      }
+    </script>
+</head>
+<body>
+
+<!-- 1. LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-big"><i class="fas fa-bolt"></i></div>
+    <h2 style="margin: 0 0 8px 0; font-weight:700;">R Share</h2>
+    <p style="color:var(--text-muted); margin-bottom:32px; font-size:0.95rem;">Secure P2P file sharing made simple.</p>
+    <input type="text" id="usernameInput" class="login-input" placeholder="Enter Display Name" maxlength="12">
+    <button class="btn-primary" id="loginBtn">Start Sharing</button>
+    
+    <a href="https://ravjitsingh.blogspot.com" target="_blank" class="credit-link">
+      R Share by Ravjit Singh
+    </a>
+  </div>
+</div>
+
+<!-- 2. MAIN LAYOUT -->
+<div class="app-layout" id="appLayout">
+  
+  <!-- Mobile Backdrop -->
+  <div class="sidebar-backdrop" id="backdrop"></div>
+
+  <!-- Sidebar / Bottom Sheet -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sheet-handle"></div>
+    <div class="sidebar-header">
+      <h3 style="margin:0; font-size:1.1rem;">Online Users</h3>
+      <span style="background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;" id="userCount">0</span>
+    </div>
+    <div class="user-list" id="userList">
+      <div style="text-align:center; padding:40px; opacity:0.5;">
+        <i class="fas fa-spinner fa-spin"></i><br><br>Scanning...
+      </div>
+    </div>
+    <div class="my-profile">
+      <div class="avatar" id="myAvatarSmall" style="background:#334155;">ME</div>
+      <div>
+        <div style="font-weight:700;" id="myNameDisplay">Me</div>
+        <div style="font-size:0.8rem; color:var(--success);">● Active</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="app-header">
+      <div class="brand">
+        <i class="fas fa-bolt" style="color:var(--primary)"></i> R Share
+      </div>
+      <div id="statusBadge" style="font-size:0.8rem; background:rgba(255,255,255,0.05); padding:6px 12px; border-radius:20px;">Idle</div>
+    </header>
+
+    <div class="chat-area" id="chat">
+      <div id="emptyState" style="text-align:center; margin-top:auto; margin-bottom:auto; opacity:0.6; padding:0 20px;">
+        <i class="fas fa-paper-plane" style="font-size:3rem; margin-bottom:20px; color:var(--primary);"></i>
+        <h3>No Connection</h3>
+        <p style="font-size:0.9rem;">Tap the <b>Users Button</b> to find peers and send invites.</p>
+      </div>
+    </div>
+
+    <div class="fab-users" id="fabUsers">
+      <i class="fas fa-users"></i>
+      <div class="fab-badge hidden" id="fabCount">0</div>
+    </div>
+
+    <footer class="app-footer">
+      <label for="fileIn" class="file-btn" id="fileBtn">
+        <i class="fas fa-cloud-upload-alt"></i> <span>Wait for connection...</span>
+      </label>
+      <input id="fileIn" type="file" multiple disabled />
+    </footer>
+  </main>
+</div>
+
+<!-- 3. MODALS -->
+<div class="modal-overlay" id="inviteModal">
+  <div class="modal-box">
+    <div class="modal-avatar-large" id="inviterAvatar"></div>
+    <h3 style="margin:0 0 8px 0;">Connection Request</h3>
+    <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:0;" id="inviterNameMsg"></p>
+    <div class="btn-group">
+      <button class="btn-action btn-reject" id="btnReject">Decline</button>
+      <button class="btn-action btn-accept" id="btnAccept">Accept</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="waitingModal">
+  <div class="modal-box">
+    <i class="fas fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary); margin-bottom:20px;"></i>
+    <h3>Sending Invite...</h3>
+    <p style="color:var(--text-muted); font-size:0.9rem;">Waiting for peer to accept.</p>
+    <button class="btn-action btn-reject" style="width:100%; margin-top:20px;" onclick="cancelInvite()">Cancel</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast">
+  <i class="fas fa-check-circle" style="color:var(--success)"></i>
+  <span id="toastMsg">Notification</span>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue, remove, onDisconnect, push, child, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+  // --- CONFIG ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyAXKtLpmfjhRD3wuDYWpup-tjc1GWGOAvk",
+    authDomain: "r-share-bdb5d.firebaseapp.com",
+    databaseURL: "https://r-share-bdb5d-default-rtdb.firebaseio.com",
+    projectId: "r-share-bdb5d",
+    storageBucket: "r-share-bdb5d.firebasestorage.app",
+    messagingSenderId: "501646985802",
+    appId: "1:501646985802:web:84fe42675104202caf34b3",
+    measurementId: "G-C8C1TW7VZ3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  // --- VARIABLES ---
+  let myId = Math.random().toString(36).substr(2, 9);
+  let myName = "";
+  let myColor = "";
+  let currentPeerId = null;
+  let currentRoomId = null;
+  let pc, dc;
+  
+  // File Transfer
+  const CHUNK_SIZE = 65536;
+  let fileQueue = [];
+  let isSending = false;
+  let incomingFile = { buffer: [], meta: null, received: 0, ui: null };
+
+  // --- UI HELPERS ---
+  const el = id => document.getElementById(id);
+  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4'];
+  const getColor = (name) => colors[Math.abs(name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % colors.length];
+  
+  const ui = {
+    login: el('loginScreen'),
+    app: el('appLayout'),
+    sidebar: el('sidebar'),
+    backdrop: el('backdrop'),
+    fab: el('fabUsers'),
+    userList: el('userList'),
+    fileBtn: el('fileBtn'),
+    fileInput: el('fileIn'),
+    chat: el('chat'),
+    empty: el('emptyState'),
+    toast: el('toast')
+  };
+
+  // --- LOGIN ---
+  el('loginBtn').onclick = () => {
+    const name = el('usernameInput').value.trim();
+    if(!name) return showToast("Enter a name", "error");
+    
+    myName = name;
+    myColor = getColor(name);
+    
+    // Set Profile
+    el('myAvatarSmall').style.background = myColor;
+    el('myAvatarSmall').innerText = name.substring(0,2).toUpperCase();
+    el('myNameDisplay').innerText = name;
+
+    // Transition
+    ui.login.style.opacity = 0;
+    setTimeout(() => {
+      ui.login.style.display = 'none';
+      ui.app.classList.add('active');
+    }, 400);
+
+    // Firebase Presence
+    const userRef = ref(db, `users/${myId}`);
+    set(userRef, { name: myName, color: myColor, lastSeen: Date.now() });
+    onDisconnect(userRef).remove();
+    onDisconnect(ref(db, `notifications/${myId}`)).remove();
+
+    // Listeners
+    onValue(ref(db, 'users'), snap => renderUserList(snap.val()));
+    onValue(ref(db, `notifications/${myId}`), handleNotification);
+  };
+
+  // --- DRAWER LOGIC ---
+  const toggleDrawer = (open) => {
+    if(open) {
+      ui.sidebar.classList.add('open');
+      ui.backdrop.classList.add('active');
+    } else {
+      ui.sidebar.classList.remove('open');
+      ui.backdrop.classList.remove('active');
+    }
+  };
+
+  ui.fab.onclick = () => toggleDrawer(true);
+  ui.backdrop.onclick = () => toggleDrawer(false);
+
+  function renderUserList(users) {
+    ui.userList.innerHTML = "";
+    if(!users) {
+      el('userCount').innerText = "0";
+      el('fabCount').classList.add('hidden');
+      return;
+    }
+
+    let count = 0;
+    Object.entries(users).forEach(([id, user]) => {
+      if(id === myId) return;
+      count++;
+      
+      const card = document.createElement('div');
+      card.className = "user-card";
+      card.innerHTML = `
+        <div class="avatar" style="background:${user.color}">
+          ${user.name.substring(0,2).toUpperCase()}
+          <div class="online-dot"></div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:0.95rem;">${user.name}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted);">Tap to invite</div>
+        </div>
+        <i class="fas fa-paper-plane" style="color:var(--primary)"></i>
+      `;
+      card.onclick = () => {
+        toggleDrawer(false);
+        sendInvite(id, user);
+      };
+      ui.userList.appendChild(card);
+    });
+
+    el('userCount').innerText = count;
+    el('fabCount').innerText = count;
+    el('fabCount').classList.toggle('hidden', count === 0);
+  }
+
+  // --- SIGNALING ---
+  function sendInvite(targetId, user) {
+    if(currentPeerId) return showToast("Disconnect current peer first", "error");
+    
+    currentPeerId = targetId;
+    currentRoomId = [myId, targetId].sort().join('-');
+    
+    el('waitingModal').classList.add('active');
+    
+    set(ref(db, `notifications/${targetId}`), {
+      type: 'invite', from: myId, name: myName, color: myColor, roomId: currentRoomId
+    });
+  }
+
+  window.cancelInvite = () => {
+    if(currentPeerId) remove(ref(db, `notifications/${currentPeerId}`));
+    el('waitingModal').classList.remove('active');
+    currentPeerId = null;
+  };
+
+  function handleNotification(snap) {
+    const data = snap.val();
+    if(!data) return;
+
+    if(data.type === 'invite') {
+      el('inviterAvatar').style.background = data.color;
+      el('inviterAvatar').innerText = data.name.substring(0,2).toUpperCase();
+      el('inviterNameMsg').innerText = `${data.name} wants to connect with you.`;
+      
+      el('inviteModal').classList.add('active');
+      
+      el('btnAccept').onclick = () => {
+        el('inviteModal').classList.remove('active');
+        acceptInvite(data);
+      };
+      el('btnReject').onclick = () => {
+        el('inviteModal').classList.remove('active');
+        set(ref(db, `notifications/${data.from}`), { type: 'reject', from: myId });
+        remove(ref(db, `notifications/${myId}`));
+      };
+    } 
+    else if (data.type === 'accept') {
+      el('waitingModal').classList.remove('active');
+      showToast("Peer accepted!");
+      startWebRTC(true);
+      remove(ref(db, `notifications/${myId}`));
+    }
+    else if (data.type === 'reject') {
+      el('waitingModal').classList.remove('active');
+      showToast("Invite declined", "error");
+      currentPeerId = null;
+      remove(ref(db, `notifications/${myId}`));
+    }
+  }
+
+  function acceptInvite(data) {
+    currentPeerId = data.from;
+    currentRoomId = data.roomId;
+    set(ref(db, `notifications/${data.from}`), { type: 'accept', from: myId });
+    remove(ref(db, `notifications/${myId}`));
+    startWebRTC(false);
+  }
+
+  // --- WEBRTC ---
+  async function startWebRTC(isOfferer) {
+    if(pc) pc.close();
+    pc = new RTCPeerConnection(rtcConfig);
+
+    pc.oniceconnectionstatechange = () => {
+      const s = pc.iceConnectionState;
+      if(s === 'connected') {
+        el('statusBadge').innerText = "Connected";
+        el('statusBadge').style.background = "var(--success)";
+        ui.empty.style.display = 'none';
+        ui.fileBtn.classList.add('active');
+        ui.fileBtn.innerHTML = `<i class="fas fa-plus"></i> <span>Send Files</span>`;
+        ui.fileInput.disabled = false;
+        showToast("Connected securely");
+      } else if (s === 'disconnected') {
+        resetUI();
+      }
+    };
+
+    if(isOfferer) {
+      dc = pc.createDataChannel("files");
+      setupDataChannel(dc);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      set(ref(db, `rooms/${currentRoomId}/offer`), JSON.stringify(pc.localDescription));
+      
+      onValue(ref(db, `rooms/${currentRoomId}/answer`), snap => {
+        if(snap.val() && !pc.currentRemoteDescription) pc.setRemoteDescription(JSON.parse(snap.val()));
+      });
+    } else {
+      pc.ondatachannel = e => { dc = e.channel; setupDataChannel(dc); };
+      
+      const offerRef = ref(db, `rooms/${currentRoomId}/offer`);
+      onValue(offerRef, async snap => {
+        if(snap.exists() && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(JSON.parse(snap.val()));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          set(ref(db, `rooms/${currentRoomId}/answer`), JSON.stringify(pc.localDescription));
+        }
+      });
+    }
+
+    pc.onicecandidate = e => {
+      if(e.candidate) push(ref(db, `rooms/${currentRoomId}/candidates/${isOfferer?'offer':'answer'}`), JSON.stringify(e.candidate));
+    };
+    
+    onValue(ref(db, `rooms/${currentRoomId}/candidates/${isOfferer?'answer':'offer'}`), snap => {
+      snap.forEach(c => pc.addIceCandidate(JSON.parse(c.val())).catch(e=>{}));
+    });
+  }
+
+  function setupDataChannel(channel) {
+    channel.onmessage = handleData;
+  }
+
+  function resetUI() {
+    el('statusBadge').innerText = "Idle";
+    el('statusBadge').style.background = "rgba(255,255,255,0.1)";
+    ui.empty.style.display = 'block';
+    ui.fileBtn.classList.remove('active');
+    ui.fileBtn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>Wait for connection...</span>`;
+    ui.fileInput.disabled = true;
+    currentPeerId = null;
+    currentRoomId = null;
+    showToast("Disconnected", "error");
+  }
+
+  // --- FILE TRANSFER ---
+  ui.fileInput.onchange = (e) => {
+    for(let f of e.target.files) fileQueue.push(f);
+    processQueue();
+    ui.fileInput.value = "";
+  };
+
+  async function processQueue() {
+    if(isSending || fileQueue.length === 0) return;
+    isSending = true;
+    const file = fileQueue.shift();
+    await sendFile(file);
+    isSending = false;
+    processQueue();
+  }
+
+  async function sendFile(file) {
+    const ui = createBubble(file.name, file.size, 'sent');
+    dc.send(JSON.stringify({ type:'meta', name:file.name, size:file.size, mime:file.type }));
+    
+    const buffer = await file.arrayBuffer();
+    let offset = 0;
+    while(offset < file.size) {
+      if(dc.bufferedAmount > 1024 * 1024) { await new Promise(r=>setTimeout(r,10)); continue; }
+      const chunk = buffer.slice(offset, offset + CHUNK_SIZE);
+      dc.send(chunk);
+      offset += chunk.byteLength;
+      ui.update(offset);
+    }
+    ui.finish();
+  }
+
+  function handleData(e) {
+    const data = e.data;
+    if(typeof data === 'string') {
+      const meta = JSON.parse(data);
+      if(meta.type === 'meta') incomingFile = { meta, received: 0, buffer: [], ui: createBubble(meta.name, meta.size, 'received') };
+    } else {
+      if(!incomingFile.meta) return;
+      incomingFile.buffer.push(data);
+      incomingFile.received += data.byteLength;
+      incomingFile.ui.update(incomingFile.received);
+      
+      if(incomingFile.received >= incomingFile.meta.size) {
+        const blob = new Blob(incomingFile.buffer, { type: incomingFile.meta.mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = incomingFile.meta.name; a.click();
+        incomingFile.ui.finish();
+        incomingFile.buffer = []; incomingFile.meta = null;
+      }
+    }
+  }
+
+  // --- UI COMPONENTS ---
+  
+  // Truncate logic to keep extension visible
+  function truncateName(name) {
+    if (name.length <= 25) return name;
+    const lastDot = name.lastIndexOf('.');
+    if (lastDot === -1) return name.substring(0, 20) + '...';
+    
+    const ext = name.substring(lastDot);
+    const namePart = name.substring(0, lastDot);
+    
+    // Safety check
+    if (namePart.length < 10) return name; 
+    
+    return namePart.substring(0, 10) + '...' + ext;
+  }
+
+  function createBubble(name, size, type) {
+    const div = document.createElement('div');
+    div.className = `file-bubble ${type}`;
+    const icon = type === 'sent' ? 'fa-arrow-up' : 'fa-arrow-down';
+    
+    // Use truncated name for display
+    const displayName = truncateName(name);
+
+    div.innerHTML = `
+      <div class="bubble-header">
+        <div class="file-icon-box"><i class="fas fa-file"></i></div>
+        <div class="file-details">
+          <div class="file-name" title="${name}">${displayName}</div>
+          <div class="file-meta">${formatBytes(size)} • ${type==='sent'?'Uploading...':'Downloading...'}</div>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill"></div></div>
+    `;
+    ui.chat.appendChild(div);
+    ui.chat.scrollTop = ui.chat.scrollHeight;
+    
+    const fill = div.querySelector('.progress-fill');
+    return {
+      update: (val) => fill.style.width = (val/size*100)+'%',
+      finish: () => {
+        fill.style.background = "var(--success)";
+        div.querySelector('.file-meta').innerText = "Transfer Complete";
+        div.querySelector('.file-icon-box').innerHTML = `<i class="fas ${icon}"></i>`;
+      }
+    };
+  }
+
+  function showToast(msg, type="normal") {
+    el('toastMsg').innerText = msg;
+    ui.toast.querySelector('i').className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+    ui.toast.querySelector('i').style.color = type === 'error' ? 'var(--danger)' : 'var(--success)';
+    ui.toast.classList.add('show');
+    setTimeout(() => ui.toast.classList.remove('show'), 3000);
+  }
+
+  function formatBytes(bytes) {
+    if(bytes===0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B','KB','MB','GB'][i];
+  }
+</script>
+</body>
+</html>
+
+
+Room(roomId) {
+    chatPC = new RTCPeerConnection(rtcConfig);
+    chatPC.ondatachannel = event => {
+        dc = event.channel;
+        setupDataChannel(dc);
+    };
+    
+    const roomDoc = doc(db, ROOMS_COLLECTION, roomId);
+    const roomSnap = await getDoc(roomDoc);
+    
+    if (roomSnap.exists()) {
+        const offer = roomSnap.data().offer;
+        await chatPC.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await chatPC.createAnswer();
+        await chatPC.setLocalDescription(answer);
+
+        await updateDoc(roomDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+
+        chatPC.onicecandidate = e => {
+            if (e.candidate) addDoc(collection(db, ROOMS_COLLECTION, roomId, 'calleeCandidates'), e.candidate.toJSON());
+        };
+
+        onSnapshot(collection(db, ROOMS_COLLECTION, roomId, 'callerCandidates'), (snap) => {
+            snap.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const candidate = new RTCIceCandidate(change.doc.data());
+                    chatPC.addIceCandidate(candidate);
+                }
+            });
+        });
+    }
+}
+
+function setupDataChannel(channel) {
+    channel.onopen = () => {
+        statusText.textContent = "Connected";
+        statusDot.className = "absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-surface shadow-[0_0_8px_rgba(34,197,94,0.6)]";
+        startCallBtn.disabled = false;
+        startCallBtn.classList.remove('text-gray-500');
+        startCallBtn.classList.add('text-primary');
+        
+        // Clear placeholder
+        chatBox.innerHTML = '';
+        addSysMsg("Secure Connection Established.");
+    };
+    channel.onmessage = handleMessage;
+}
+
+// --- 5. Messaging Logic ---
+
+function handleMessage(event) {
+    if (typeof event.data === 'string') {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'text') addMessage(data.text, 'their');
+            else if (data.type === 'file-start') {
+                incomingFiles[data.id] = { ...data, chunks: [] };
+                addSysMsg(`Receiving ${data.filename}...`);
+            }
+        } catch(e) { console.log("Non-JSON msg", event.data); }
+    } else {
+        // Binary chunk
+        // Simplified file handling for this demo to save space
+        const fileId = Object.keys(incomingFiles)[0]; // Basic assumption: one file at a time
+        if(fileId) {
+            incomingFiles[fileId].chunks.push(event.data);
+            // In a full app, check size vs total size
+            // Here we just re-assemble after a delay or if we knew total chunks
+        }
+    }
+}
+
+sendBtn.onclick = () => {
+    const text = msgIn.value.trim();
+    if (!text || !dc || dc.readyState !== 'open') return;
+    
+    dc.send(JSON.stringify({ type: 'text', text: text }));
+    addMessage(text, 'mine');
+    msgIn.value = '';
+};
+
+msgIn.onkeypress = (e) => { if (e.key === 'Enter') sendBtn.click(); };
+
+function addMessage(text, who) {
+    const div = document.createElement('div');
+    div.className = who === 'mine' ? 
+        "flex justify-end animate-fadeIn" : "flex justify-start animate-fadeIn";
+    
+    const bubble = document.createElement('div');
+    bubble.className = who === 'mine' ? 
+        "bg-primary text-white px-4 py-3 rounded-2xl rounded-br-none max-w-[75%]" : 
+        "bg-surface-light text-white px-4 py-3 rounded-2xl rounded-bl-none max-w-[75%] border border-white/5";
+    
+    bubble.textContent = text;
+    div.appendChild(bubble);
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function addSysMsg(text) {
+    const div = document.createElement('div');
+    div.className = "flex justify-center opacity-70 my-2";
+    div.innerHTML = `<span class="text-xs bg-surface-light px-3 py-1 rounded-full text-gray-400 border border-white/5">${text}</span>`;
+    chatBox.appendChild(div);
+}
+
+// --- 6. Video Logic ---
+
+function listenForVideoInvites() {
+    onSnapshot(doc(db, INVITES_COLLECTION, myName), async (snap) => {
+        const data = snap.data();
+        if (data && !data.handled && data.offer) {
+            // Incoming Call
+            currentVideoInviteRef = doc(db, INVITES_COLLECTION, myName);
+            el('callerNameDisplay').textContent = data.from + " calling...";
+            el('incomingCallAlert').classList.remove('-translate-y-full');
+            ringtoneAudio.play().catch(e => {});
+
+            el('declineCallBtn').onclick = async () => {
+                ringtoneAudio.pause();
+                el('incomingCallAlert').classList.add('-translate-y-full');
+                await updateDoc(currentVideoInviteRef, { handled: true });
+            };
+
+            el('acceptCallBtn').onclick = async () => {
+                ringtoneAudio.pause();
+                el('incomingCallAlert').classList.add('-translate-y-full');
+                startVideoUI();
+                
+                videoPC = new RTCPeerConnection(rtcConfig);
+                const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+                el('localVideo').srcObject = stream;
+                localStream = stream;
+                stream.getTracks().forEach(t => videoPC.addTrack(t, stream));
+
+                videoPC.ontrack = e => { el('remoteVideo').srcObject = e.streams[0]; el('remotePlaceholder').classList.add('hidden'); };
+                
+                videoPC.onicecandidate = e => {
+                    if(e.candidate) addDoc(collection(currentVideoInviteRef, 'calleeCandidates'), e.candidate.toJSON());
+                };
+
+                await videoPC.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await videoPC.createAnswer();
+                await videoPC.setLocalDescription(answer);
+
+                await updateDoc(currentVideoInviteRef, { 
+                    answer: { type: answer.type, sdp: answer.sdp },
+                    handled: true // Mark handled but keep doc for candidates
+                });
+                
+                // Watch for caller candidates
+                onSnapshot(collection(currentVideoInviteRef, 'callerCandidates'), snap => {
+                    snap.docChanges().forEach(c => { if(c.type==='added') videoPC.addIceCandidate(c.doc.data()); });
+                });
+            };
+        }
+    });
+}
+
+startCallBtn.onclick = async () => {
+    if (!currentChatPartner) return;
+    
+    startVideoUI();
+    el('videoStatusText').textContent = "Calling...";
+    
+    videoPC = new RTCPeerConnection(rtcConfig);
+    const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    el('localVideo').srcObject = stream;
+    localStream = stream;
+    stream.getTracks().forEach(t => videoPC.addTrack(t, stream));
+    
+    videoPC.ontrack = e => { el('remoteVideo').srcObject = e.streams[0]; el('remotePlaceholder').classList.add('hidden'); };
+
+    // Invite doc at target's location
+    const inviteRef = doc(db, INVITES_COLLECTION, currentChatPartner); // Target's ID should be used
+    // NOTE: In this demo, currentChatPartner might be DisplayName if we didn't store ID perfectly. 
+    // Ideally we track ID. For now assuming sanitized name = ID.
+    
+    videoPC.onicecandidate = e => {
+        if(e.candidate) addDoc(collection(inviteRef, 'callerCandidates'), e.candidate.toJSON());
+    };
+
+    const offer = await videoPC.createOffer();
+    await videoPC.setLocalDescription(offer);
+    
+    await setDoc(inviteRef, {
+        from: myName,
+        offer: { type: offer.type, sdp: offer.sdp },
+        handled: false
+    });
+    
+    // Listen for answer
+    onSnapshot(inviteRef, async (snap) => {
+        const data = snap.data();
+        if (data && data.answer && !videoPC.currentRemoteDescription) {
+             await videoPC.setRemoteDescription(new RTCSessionDescription(data.answer));
+             el('videoStatusText').textContent = "Connected";
+             el('videoStatusDot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]";
+        }
+    });
+    
+    // Listen for callee candidates
+    onSnapshot(collection(inviteRef, 'calleeCandidates'), snap => {
+        snap.docChanges().forEach(c => { if(c.type==='added') videoPC.addIceCandidate(c.doc.data()); });
+    });
+};
+
+function startVideoUI() {
+    el('callOverlay').classList.remove('hidden');
+    setTimeout(() => el('callOverlay').classList.remove('opacity-0'), 10);
+}
+
+el('hangupBtn').onclick = () => {
+    el('callOverlay').classList.add('opacity-0');
+    setTimeout(() => {
+        el('callOverlay').classList.add('hidden');
+        if(localStream) localStream.getTracks().forEach(t => t.stop());
+        if(videoPC) videoPC.close();
+        videoPC = null;
+    }, 500);
+};
+
+// --- Utils ---
+usersBtn.onclick = () => {
+    usersPanel.classList.remove('hidden');
+    setTimeout(() => {
+        usersPanel.classList.remove('opacity-0');
+        usersPanelContent.classList.remove('translate-x-full');
+    }, 10);
+};
+
+el('closeUsersPanel').onclick = () => {
+    usersPanelContent.classList.add('translate-x-full');
+    usersPanel.classList.add('opacity-0');
+    setTimeout(() => usersPanel.classList.add('hidden'), 300);
+};
+
+</script>
+</body>
+</html>
+
